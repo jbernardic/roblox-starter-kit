@@ -6,9 +6,9 @@ local TestingService = {}
 
 
 function TestingService.Init()
-    EventBus.Subscribe("PlayerDataLoaded", function(player)
-        print(PlayerDataService.Get(player).currency)
-    end)
+    -- EventBus.Subscribe("PlayerDataLoaded", function(player)
+    --     print(PlayerDataService.Get(player).currency)
+    -- end)
 end
 
 return TestingService

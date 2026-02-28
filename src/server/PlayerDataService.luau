@@ -2,8 +2,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ProfileStore = require(ReplicatedStorage.Shared.ProfileStore)
-local EventBus = require(ReplicatedStorage.Shared.EventBus)
-
 
 local PlayerDataService = {}
 PlayerDataService.Priority = 1
@@ -41,47 +39,38 @@ function PlayerDataService.IsLoaded(player: Player): boolean
 end
 
 ------------------------------------------------------------------------
--- Init
+-- Init / PlayerInit
 ------------------------------------------------------------------------
 
 function PlayerDataService.Init()
-	local function onPlayerAdded(player: Player)
-		local profile = store:StartSessionAsync(`Player_{player.UserId}`, {
-			Cancel = function()
-				return not player:IsDescendantOf(Players)
-			end,
-		})
-
-		if profile == nil or not player:IsDescendantOf(Players) then
-			player:Kick("Failed to load data. Please rejoin.")
-			return
-		end
-
-		profile:Reconcile()
-		profile.OnSessionEnd:Connect(function()
-			profiles[player.UserId] = nil
-			player:Kick("Your session ended. Please rejoin.")
-		end)
-
-		profiles[player.UserId] = profile
-
-		EventBus.Publish("PlayerDataLoaded", player)
-	end
-
-	local function onPlayerRemoving(player: Player)
+	Players.PlayerRemoving:Connect(function(player)
 		local profile = profiles[player.UserId]
 		if profile then
 			profile:EndSession()
 			profiles[player.UserId] = nil
 		end
+	end)
+end
+
+function PlayerDataService.PlayerInit(player: Player)
+	local profile = store:StartSessionAsync(`Player_{player.UserId}`, {
+		Cancel = function()
+			return not player:IsDescendantOf(Players)
+		end,
+	})
+
+	if profile == nil or not player:IsDescendantOf(Players) then
+		player:Kick("Failed to load data. Please rejoin.")
+		return
 	end
 
-	Players.PlayerAdded:Connect(onPlayerAdded)
-	Players.PlayerRemoving:Connect(onPlayerRemoving)
+	profile:Reconcile()
+	profile.OnSessionEnd:Connect(function()
+		profiles[player.UserId] = nil
+		player:Kick("Your session ended. Please rejoin.")
+	end)
 
-	for _, player in Players:GetPlayers() do
-		task.spawn(onPlayerAdded, player)
-	end
+	profiles[player.UserId] = profile
 end
 
 return PlayerDataService
