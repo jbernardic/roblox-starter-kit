@@ -132,18 +132,27 @@ local btn = gui:FindFirstChild("BuyBtn") :: GuiButton
 
 Avoid EventBus for simple point-to-point calls where a require works — event names are untyped strings, payloads aren't enforced, and subscribers are invisible to the type checker.
 
-**Client ↔ Server:** All RemoteEvents/RemoteFunctions are defined in `src/shared/Events.luau` using `Net.CreateEvent()` / `Net.CreateFunction()`. Never create Remotes manually or use `WaitForChild` strings. Group events by feature with a comment header.
+**Client ↔ Server:** All RemoteEvents/RemoteFunctions are defined in `src/shared/Events.luau` using `Net.CreateEvent()` / `Net.CreateFunction()`. These return the actual `RemoteEvent`/`RemoteFunction` instances, so you get full intellisense and the standard Roblox API. Never create Remotes manually or use `WaitForChild` strings. Group events by feature with a comment header.
 
 ```luau
 -- src/shared/Events.luau
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Net = require(ReplicatedStorage.Shared.Net)
 local Events = {}
 
 -- Shop
-Events.ShopBuy = Net.CreateEvent("ShopBuy")
+Events.ShopBuy = Net.CreateEvent("ShopBuy") -- returns RemoteEvent
 
 return Events
+```
+
+```luau
+-- server
+Events.ShopBuy.OnServerEvent:Connect(function(player, itemName) end)
+Events.ShopBuy:FireClient(player, ...)
+
+-- client
+Events.ShopBuy.OnClientEvent:Connect(function(...) end)
+Events.ShopBuy:FireServer(itemName)
 ```
 
 ## Key Shared Modules
@@ -151,7 +160,7 @@ return Events
 | Module | Purpose |
 |---|---|
 | `EventBus` | Pub/sub for decoupled server-to-server communication |
-| `Net` | Wraps RemoteEvents/RemoteFunctions with symmetric client/server API |
+| `Net` | Auto-creates RemoteEvents/RemoteFunctions and returns the actual typed instances |
 | `ProfileStore` | Session-locked DataStore (by loleris) — all player persistence goes here |
 | `TagManager` | CollectionService wrapper; filters StarterGui duplicates on client |
 | `Panel` | Factory for toggleable UI screens (`Show/Hide/Toggle`) |

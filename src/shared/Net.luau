@@ -1,26 +1,25 @@
 --!strict
 --[[
-	Net - Networking abstraction that auto-creates RemoteEvents/RemoteFunctions
+	Net - Auto-creates RemoteEvents/RemoteFunctions and returns the actual instances.
 
 	Usage (shared/Events.luau):
-		local Net = require(shared.Net)
+		local Net = require(ReplicatedStorage.Shared.Net)
 		local Events = {}
 		Events.WaveStart    = Net.CreateEvent("WaveStart")
-		Events.ShopBuy      = Net.CreateEvent("ShopBuy")
 		Events.GetInventory = Net.CreateFunction("GetInventory")
 		return Events
 
 	Usage (server):
-		local Events = require(shared.Events)
-		Events.WaveStart.FireClient(player, waveNumber)
-		Events.ShopBuy.OnServer(function(player, itemName, price) end)
-		Events.GetInventory.OnServerInvoke(function(player) return inventory end)
+		local Events = require(ReplicatedStorage.Shared.Events)
+		Events.WaveStart:FireClient(player, waveNumber)
+		Events.WaveStart.OnServerEvent:Connect(function(player, ...) end)
+		Events.GetInventory.OnServerInvoke = function(player) return inventory end
 
 	Usage (client):
-		local Events = require(shared.Events)
-		Events.WaveStart.OnClient(function(waveNumber) end)
-		Events.ShopBuy.FireServer("Zombie", 50)
-		local inventory = Events.GetInventory.InvokeServer()
+		local Events = require(ReplicatedStorage.Shared.Events)
+		Events.WaveStart.OnClientEvent:Connect(function(waveNumber) end)
+		Events.WaveStart:FireServer(waveNumber)
+		local inventory = Events.GetInventory:InvokeServer()
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -44,92 +43,36 @@ local function getFolder(): Folder
 	end
 end
 
-local function getRemoteEvent(name: string): RemoteEvent
+function Net.CreateEvent(name: string): RemoteEvent
 	local folder = getFolder()
 	if IS_SERVER then
-		local remote = folder:FindFirstChild(name)
-		if not remote then
-			remote = Instance.new("RemoteEvent")
-			remote.Name = name
-			remote.Parent = folder
+		local existing = folder:FindFirstChild(name)
+		if existing then
+			return existing :: RemoteEvent
 		end
-		return remote :: RemoteEvent
+		local remote = Instance.new("RemoteEvent")
+		remote.Name = name
+		remote.Parent = folder
+		return remote
 	else
 		return folder:WaitForChild(name) :: RemoteEvent
 	end
 end
 
-local function getRemoteFunction(name: string): RemoteFunction
+function Net.CreateFunction(name: string): RemoteFunction
 	local folder = getFolder()
 	if IS_SERVER then
-		local remote = folder:FindFirstChild(name)
-		if not remote then
-			remote = Instance.new("RemoteFunction")
-			remote.Name = name
-			remote.Parent = folder
+		local existing = folder:FindFirstChild(name)
+		if existing then
+			return existing :: RemoteFunction
 		end
-		return remote :: RemoteFunction
+		local remote = Instance.new("RemoteFunction")
+		remote.Name = name
+		remote.Parent = folder
+		return remote
 	else
 		return folder:WaitForChild(name) :: RemoteFunction
 	end
-end
-
-function Net.CreateEvent(name: string)
-	local remote: RemoteEvent? = nil
-
-	local function get(): RemoteEvent
-		if not remote then
-			remote = getRemoteEvent(name)
-		end
-		return remote :: RemoteEvent
-	end
-
-	return {
-		FireClient = function(player: Player, ...: any)
-			get():FireClient(player, ...)
-		end,
-
-		FireAllClients = function(...: any)
-			get():FireAllClients(...)
-		end,
-
-		OnServer = function(callback: (player: Player, ...any) -> ()): RBXScriptConnection
-			return get().OnServerEvent:Connect(callback)
-		end,
-
-		FireServer = function(...: any)
-			get():FireServer(...)
-		end,
-
-		OnClient = function(callback: (...any) -> ()): RBXScriptConnection
-			return get().OnClientEvent:Connect(callback)
-		end,
-	}
-end
-
-function Net.CreateFunction(name: string)
-	local remote: RemoteFunction? = nil
-
-	local function get(): RemoteFunction
-		if not remote then
-			remote = getRemoteFunction(name)
-		end
-		return remote :: RemoteFunction
-	end
-
-	return {
-		OnServerInvoke = function(callback: (player: Player, ...any) -> ...any)
-			get().OnServerInvoke = callback
-		end,
-
-		InvokeServer = function(...: any): ...any
-			return get():InvokeServer(...)
-		end,
-
-		OnClientInvoke = function(callback: (...any) -> ...any)
-			get().OnClientInvoke = callback
-		end,
-	}
 end
 
 return Net
