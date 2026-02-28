@@ -157,12 +157,30 @@ return Events
 
 ## Player Data
 
-All persistent data goes through `ProfileStore`. Never create separate DataStores for individual features.
+All persistent player data goes through `PlayerDataService`. Never use ProfileStore directly or create separate DataStores.
 
-- Create a store with `ProfileStore.New(store_name, template)`
-- Start a session per player with `store:StartSessionAsync(profile_key)` — this yields until loaded
-- Access and mutate data via `profile.Data` — changes are automatically saved
-- End a session on player leave with `profile:EndSession()`
+Add new fields to the `PlayerData` type and `template` in `PlayerDataService.luau` — `profile:Reconcile()` auto-fills missing keys for existing players.
+
+**API:**
+- `PlayerDataService.Get(player)` — returns `PlayerData?` (nil if not yet loaded)
+- `PlayerDataService.IsLoaded(player)` — boolean check before accessing data
+- `PlayerDataService.GetProfile(player)` — raw ProfileStore profile, for advanced use only
+
+**In a `PlayerInit`** (data is guaranteed loaded by Priority 1 before your service runs):
+```luau
+function MyService.PlayerInit(player: Player)
+    local data = PlayerDataService.Get(player)
+    if not data then return end
+    -- data.currency, etc.
+end
+```
+
+**Mutating data** — edit `profile.Data` directly, ProfileStore auto-saves:
+```luau
+local data = PlayerDataService.Get(player)
+if not data then return end
+data.currency += 100
+```
 
 ## UI Panels
 
