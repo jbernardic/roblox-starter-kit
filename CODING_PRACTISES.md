@@ -111,7 +111,10 @@ type MultiplierSource = {
 
 ## Events and Communication
 
-**Server-to-server**: Use `EventBus.Publish()` / `EventBus.Subscribe()` for decoupled communication between services. Never require a service just to call one function when an event would work.
+**Server-to-server**: Prefer direct `require` — it gives full intellisense and type safety. Use `EventBus.Publish()` / `EventBus.Subscribe()` only when:
+- A direct require would create a circular dependency
+- One emitter needs to notify multiple independent consumers (e.g. achievements, analytics, and UI all reacting to the same event)
+- A low-level module needs to notify higher-level modules without depending on them
 
 **Client-server**: Use `Net.CreateEvent()` / `Net.CreateFunction()` defined in a shared events file. Never create RemoteEvents manually or use `WaitForChild` strings.
 
