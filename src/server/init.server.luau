@@ -1,3 +1,4 @@
+
 --[[
 	Server Auto-Init
 
@@ -20,6 +21,8 @@
 ]]
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Events = require(ReplicatedStorage.Shared.Events)
 
 local services: { { module: any, name: string, priority: number } } = {}
 
@@ -66,7 +69,7 @@ local function onPlayerAdded(player: Player)
 	end
 end
 
-Players.PlayerAdded:Connect(function(player)
+Events.ClientLoaded.OnServerEvent:Connect(function(player)
 	task.spawn(onPlayerAdded, player)
 end)
 

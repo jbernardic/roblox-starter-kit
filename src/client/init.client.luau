@@ -10,6 +10,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Events = require(ReplicatedStorage.Shared.Events)
 
 local controllers: { { module: any, name: string, priority: number } } = {}
 
@@ -39,19 +40,12 @@ local totalControllers = #controllers
 
 for _, entry in controllers do
 	task.spawn(function()
-		local success, err = pcall(entry.module.Init)
-		if not success then
-			warn(`[Client] Failed to init {entry.name}: {err}`)
-		end
-
+		entry.module.Init()
 		loadedCount += 1
 
 		if loadedCount == totalControllers then
 			-- All controllers loaded - notify server
-			local event = ReplicatedStorage:FindFirstChild("ClientLoadedEvent")
-			if event and event:IsA("RemoteEvent") then
-				event:FireServer()
-			end
+			Events.ClientLoaded:FireServer()
 
 			print(`[Client] {totalControllers} controllers initialized`)
 		end

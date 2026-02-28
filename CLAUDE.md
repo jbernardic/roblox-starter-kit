@@ -39,13 +39,15 @@ Rojo maps `src/` to the Roblox game hierarchy via `default.project.json`:
 `init.server.luau` and `init.client.luau` auto-discover all ModuleScripts in their respective folders. **Never manually add require lines to these init scripts.**
 
 - Server: initialized sequentially (safe for inter-service dependencies)
-- Client: initialized in parallel (faster load), fires `ClientLoadedEvent` when done
+- Client: initialized in parallel (faster load), fires `Events.ClientLoaded:FireServer()` when all controllers are done
 - Control init order with `.Priority` (number, lower = earlier, default = 100)
 - Discovery is name-based: any ModuleScript whose name contains `"Service"` is loaded
 
+**Client-ready handshake:** `PlayerInit` on the server is not called on `PlayerAdded`. Instead the server waits for `Events.ClientLoaded` from that player before calling `PlayerInit`. This guarantees all client controllers are initialized and listening before the server fires any `OnClientEvent`s at them. Never send data to a client from `PlayerInit` before this handshake — the client won't be ready.
+
 Each service may export:
 - `Init()` — called once at server start, in priority order. Use for server-level setup (connecting `PlayerRemoving`, etc.)
-- `PlayerInit(player: Player)` — called for every player (both on join and players already in-game), in priority order. Each player runs concurrently, but services are called sequentially per player so e.g. data loads before other services run.
+- `PlayerInit(player: Player)` — called per player after the client fires `ClientLoaded`, in priority order. Each player runs concurrently, but services are called sequentially per player so e.g. data loads before other services run.
 
 ```luau
 local MyService = {}
