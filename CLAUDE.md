@@ -132,14 +132,17 @@ local btn = gui:FindFirstChild("BuyBtn") :: GuiButton
 
 Avoid EventBus for simple point-to-point calls where a require works — event names are untyped strings, payloads aren't enforced, and subscribers are invisible to the type checker.
 
-**Client ↔ Server:** Define all RemoteEvents/RemoteFunctions in a shared events file using `Net.CreateEvent()` / `Net.CreateFunction()`. Never create Remotes manually or use `WaitForChild` strings.
+**Client ↔ Server:** All RemoteEvents/RemoteFunctions are defined in `src/shared/Events.luau` using `Net.CreateEvent()` / `Net.CreateFunction()`. Never create Remotes manually or use `WaitForChild` strings. Group events by feature with a comment header.
 
 ```luau
--- src/shared/GameEvents.luau
-local Net = require(shared.Net)
+-- src/shared/Events.luau
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Net = require(ReplicatedStorage.Shared.Net)
 local Events = {}
-Events.WaveStart = Net.CreateEvent("WaveStart")
-Events.ShopBuy   = Net.CreateEvent("ShopBuy")
+
+-- Shop
+Events.ShopBuy = Net.CreateEvent("ShopBuy")
+
 return Events
 ```
 
